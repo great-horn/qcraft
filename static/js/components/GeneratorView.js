@@ -1,0 +1,388 @@
+export default {
+    props: ['currentProfile'],
+    template: `
+    <div>
+        <!-- Titre principal -->
+        <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1.5rem;">Generateur</h1>
+
+        <!-- Hero Section - Derniere playlist -->
+        <div v-if="lastPlaylist && lastPlaylist.playlist" class="hero-section">
+            <div class="hero-blur-backdrop"
+                 v-if="lastPlaylist.tracks_added && lastPlaylist.tracks_added.length > 0 && lastPlaylist.tracks_added[0].album_cover"
+                 :style="'background-image: url(' + lastPlaylist.tracks_added[0].album_cover + ')'">
+            </div>
+            <div class="hero-content">
+                <img v-if="lastPlaylist.tracks_added && lastPlaylist.tracks_added.length > 0 && lastPlaylist.tracks_added[0].album_cover"
+                     :src="lastPlaylist.tracks_added[0].album_cover"
+                     :alt="lastPlaylist.playlist"
+                     class="hero-cover">
+                <div v-else class="hero-cover-placeholder">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); opacity: 0.5;">
+                        <path d="M9 18V5l12-2v13"></path>
+                        <circle cx="6" cy="18" r="3"></circle>
+                        <circle cx="18" cy="16" r="3"></circle>
+                    </svg>
+                </div>
+                <div class="hero-info">
+                    <div class="hero-label">Derniere playlist</div>
+                    <div class="hero-title">{{ lastPlaylist.playlist }}</div>
+                    <div class="hero-meta">
+                        {{ lastPlaylist.tracks_added ? lastPlaylist.tracks_added.length : 0 }} morceaux
+                        &bull; ~{{ lastPlaylist.tracks_added ? Math.round(lastPlaylist.tracks_added.length * 3.5) : 0 }} minutes
+                    </div>
+                    <div class="hero-actions">
+                        <a v-if="lastPlaylist.qobuz_playlist_id"
+                           :href="'https://open.qobuz.com/playlist/' + lastPlaylist.qobuz_playlist_id"
+                           target="_blank"
+                           class="hero-btn hero-btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                            </svg>
+                            Ouvrir dans Qobuz
+                        </a>
+                        <a href="#/history" class="hero-btn hero-btn-secondary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="1 4 1 10 7 10"></polyline>
+                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                            </svg>
+                            Voir l'historique
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Prompt -->
+        <div class="section">
+            <label for="prompt">Decris ta vibe musicale</label>
+            <textarea
+                id="prompt"
+                v-model="prompt"
+                placeholder="Ex: Une playlist chill pour travailler avec des beats lo-fi et du jazz moderne..."
+                @keydown.ctrl.enter="generatePlaylist">
+            </textarea>
+
+            <div v-if="finalPrompt" class="prompt-preview">
+                <strong>Prompt final:</strong> {{ finalPrompt }}
+            </div>
+        </div>
+
+        <!-- Onglets -->
+        <div class="section">
+            <div class="tabs tabs--pill">
+                <button class="tab-btn" :class="{ active: activeTab === 'params' }" @click="activeTab = 'params'">
+                    Parametres
+                </button>
+                <button class="tab-btn" :class="{ active: activeTab === 'moods' }" @click="activeTab = 'moods'">
+                    Ambiances
+                </button>
+                <button class="tab-btn" :class="{ active: activeTab === 'filters' }" @click="activeTab = 'filters'">
+                    Filtres avances
+                </button>
+            </div>
+
+            <!-- Onglet Parametres -->
+            <div class="tab-content" :class="{ active: activeTab === 'params' }">
+                <div class="controls">
+                    <div class="control-group">
+                        <label>
+                            Nombre de morceaux: <span class="range-value">{{ trackCount }}</span>
+                        </label>
+                        <div class="slider-container" id="trackCountSlider"></div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            Annees: <span class="range-value">{{ yearRange[0] }} - {{ yearRange[1] }}</span>
+                        </label>
+                        <div class="slider-container" id="yearRangeSlider"></div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            Chillitude: <span class="range-value">{{ chill }}/10</span>
+                        </label>
+                        <div class="slider-container" id="chillSlider"></div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>
+                            Energie: <span class="range-value">{{ energy }}/10</span>
+                        </label>
+                        <div class="slider-container" id="energySlider"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onglet Ambiances -->
+            <div class="tab-content" :class="{ active: activeTab === 'moods' }">
+                <div class="moods-grid">
+                    <button v-for="mood in moods" :key="mood.name"
+                            @click="selectMood(mood)"
+                            class="mood-btn"
+                            :class="{ active: selectedMood === mood.name }">
+                        {{ mood.name }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Onglet Filtres avances -->
+            <div class="tab-content" :class="{ active: activeTab === 'filters' }">
+                <div class="tag-groups">
+                    <div class="tag-group" v-for="group in tagGroups" :key="group.name">
+                        <h3>{{ group.name }}</h3>
+                        <div>
+                            <span v-for="tag in group.tags" :key="tag"
+                                  @click="toggleTag(tag)"
+                                  class="tag-btn"
+                                  :class="{ active: selectedTags.includes(tag) }">
+                                {{ tag }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <button class="btn btn-primary" @click="generatePlaylist" :disabled="isGenerating || !prompt.trim()">
+                <div v-if="isGenerating" class="spinner"></div>
+                <span v-if="isGenerating">Generation en cours...</span>
+                <span v-else>Generer la playlist</span>
+            </button>
+            <button class="btn btn-secondary" @click="resetFilters">
+                Reinitialiser
+            </button>
+        </div>
+
+        <!-- Resultat playlist -->
+        <div v-if="lastPlaylist && lastPlaylist.playlist" class="playlist-result">
+            <div class="playlist-header">
+                <h2 class="playlist-title">{{ lastPlaylist.playlist }}</h2>
+                <a v-if="lastPlaylist.qobuz_playlist_id"
+                   :href="'https://open.qobuz.com/playlist/' + lastPlaylist.qobuz_playlist_id"
+                   target="_blank"
+                   class="btn btn-primary">
+                    Ouvrir dans Qobuz
+                </a>
+            </div>
+
+            <div v-if="lastPlaylist.tracks_added && lastPlaylist.tracks_added.length > 0">
+                <p style="color: var(--text-secondary); margin-bottom: 15px;">
+                    {{ lastPlaylist.tracks_added.length }} morceaux &bull; ~{{ Math.round(lastPlaylist.tracks_added.length * 3.5) }} minutes
+                </p>
+                <div style="max-height: 500px; overflow-y: auto;">
+                    <a v-for="(track, index) in lastPlaylist.tracks_added"
+                       :key="index"
+                       :href="'https://open.qobuz.com/track/' + track.track_id"
+                       target="_blank"
+                       class="track-item">
+                        <div class="track-number">{{ index + 1 }}</div>
+                        <img v-if="track.album_cover"
+                             :src="track.album_cover"
+                             :alt="track.album_title"
+                             class="track-album-cover"
+                             loading="lazy">
+                        <div v-else class="track-album-cover" style="background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); opacity: 0.5;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </div>
+                        <div class="track-info">
+                            <div class="track-title">{{ track.title }}</div>
+                            <div class="track-artist">{{ track.artist }}</div>
+                            <div v-if="track.album_title" class="track-album">{{ track.album_title }}</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div v-else style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                Aucun morceau trouve. Essaie de modifier ton prompt.
+            </div>
+        </div>
+    </div>
+    `,
+    data() {
+        return {
+            activeTab: 'params',
+            prompt: '',
+            trackCount: 20,
+            yearRange: [1950, 2025],
+            chill: 5,
+            energy: 5,
+            selectedTags: [],
+            selectedMood: '',
+            isGenerating: false,
+            lastPlaylist: null,
+            sliders: {},
+            moods: [
+                { name: 'Matin calme', prompt: 'Fais une playlist calme et lumineuse pour un matin tranquille.' },
+                { name: 'Electro chill', prompt: 'Playlist electro downtempo, ambiance chill et posee.' },
+                { name: 'Rock vintage', prompt: 'Du rock annees 70-80, guitares et voix legendaires.' },
+                { name: 'Soiree funky', prompt: 'Ambiance funky et dansante pour mettre le feu a la piste.' },
+                { name: 'Jazz urbain', prompt: 'Jazz contemporain, instrumental, ambiance de nuit en ville.' },
+                { name: 'Cafe pluvieux', prompt: 'Ambiance cafe sous la pluie, lo-fi, jazzy, cosy.' },
+                { name: 'Techno sombre', prompt: 'Techno industrielle, bpm eleve, ambiance club underground.' },
+                { name: 'Chill tropical', prompt: 'Vibes exotiques, reggae, chillout, plage et soleil.' },
+                { name: 'Route de nuit', prompt: "Fais une playlist electro ou downtempo pour conduire la nuit sur l'autoroute." },
+                { name: 'Energie positive', prompt: 'Fais une playlist joyeuse et motivante pour bien commencer la journee.' },
+                { name: 'Ballade nostalgique', prompt: 'Morceaux doux et melancoliques pour les souvenirs.' },
+                { name: 'Soiree acoustique', prompt: 'Fais une playlist acoustique, chaleureuse et intime pour une soiree detendue.' }
+            ],
+            tagGroups: [
+                { name: 'Voix', tags: ['Feminines', 'Masculines', 'Non chantees'] },
+                { name: 'Langue', tags: ['Anglais', 'Francais', 'Espagnol', 'Portugais', 'Japonais', 'Instrumental'] },
+                { name: 'Version', tags: ['Live only', 'Acoustique', 'Remix', 'Version originale', 'Cover'] },
+                { name: 'Ambiance', tags: ['Pluvieuse', 'Chaleureuse', 'Experimentale', 'Vintage', 'Basse mise en avant'] },
+                { name: 'Contenu', tags: ['Classiques connus', 'Underground', 'World', 'Tout public', 'Minimaliste'] },
+                { name: "Etat d'esprit", tags: ['Hypnotique', 'Nostalgique', 'Feel good', 'Planant', 'Energisant', 'Reveur'] },
+                { name: 'Origine', tags: ['Etats-Unis', 'Europe', 'Afrique', 'Asie', 'Amerique latine', 'Moyen-Orient'] },
+                { name: 'Epoque', tags: ['Annees 60-70', 'Annees 80', 'Annees 90', 'Annees 2000', 'Annees 2010+', 'Contemporain'] },
+                { name: 'Scene', tags: ['Mainstream', 'Independant', 'Labels majeurs', 'Autoproduction', 'Scene locale', 'International'] },
+                { name: 'Production', tags: ['Hi-Fi audiophile', 'Lo-Fi vintage', 'Production moderne', 'Enregistrement live', 'Home studio'] }
+            ]
+        };
+    },
+    computed: {
+        formattedTags() {
+            return this.selectedTags.map(tag => {
+                const group = this.tagGroups.find(g => g.tags.includes(tag));
+                return group ? `${group.name}: ${tag}` : tag;
+            });
+        },
+        finalPrompt() {
+            const parts = [this.prompt.trim()];
+            if (this.trackCount !== 20) parts.push(`${this.trackCount} morceaux`);
+            if (this.yearRange[0] !== 1950 || this.yearRange[1] !== 2025) {
+                parts.push(`entre ${this.yearRange[0]} et ${this.yearRange[1]}`);
+            }
+            if (this.chill !== 5) parts.push(`chillitude ${this.chill}/10`);
+            if (this.energy !== 5) parts.push(`energie ${this.energy}/10`);
+            if (this.formattedTags.length > 0) {
+                parts.push(`avec ${this.formattedTags.join(', ')}`);
+            }
+            return parts.filter(p => p).join(', ');
+        }
+    },
+    watch: {
+        yearRange: {
+            handler(newVal) {
+                if (newVal[0] > newVal[1]) {
+                    if (newVal[0] !== this.yearRange[0]) {
+                        this.yearRange[1] = newVal[0];
+                    } else {
+                        this.yearRange[0] = newVal[1];
+                    }
+                }
+            },
+            deep: true
+        }
+    },
+    async mounted() {
+        this.loadLastPlaylist();
+        this.$nextTick(() => {
+            this.initSliders();
+        });
+    },
+    beforeUnmount() {
+        // Destroy sliders to prevent leaks
+        Object.values(this.sliders).forEach(slider => {
+            if (slider && slider.destroy) slider.destroy();
+        });
+    },
+    methods: {
+        selectMood(mood) {
+            this.prompt = mood.prompt;
+            this.selectedMood = mood.name;
+            setTimeout(() => { this.selectedMood = ''; }, 2000);
+        },
+        toggleTag(tag) {
+            const index = this.selectedTags.indexOf(tag);
+            if (index > -1) {
+                this.selectedTags.splice(index, 1);
+            } else {
+                this.selectedTags.push(tag);
+            }
+        },
+        resetFilters() {
+            this.prompt = '';
+            this.trackCount = 20;
+            this.yearRange = [1950, 2025];
+            this.chill = 5;
+            this.energy = 5;
+            this.selectedTags = [];
+            this.selectedMood = '';
+            if (this.sliders.trackCount) this.sliders.trackCount.set(20);
+            if (this.sliders.yearRange) this.sliders.yearRange.set([1950, 2025]);
+            if (this.sliders.chill) this.sliders.chill.set(5);
+            if (this.sliders.energy) this.sliders.energy.set(5);
+        },
+        initSliders() {
+            const vm = this;
+            const fmt = { to: v => Math.round(v), from: v => Number(v) };
+
+            const trackCountEl = document.getElementById('trackCountSlider');
+            if (!trackCountEl) return;
+
+            this.sliders.trackCount = noUiSlider.create(trackCountEl, {
+                start: [this.trackCount], step: 5,
+                range: { 'min': 10, 'max': 50 }, format: fmt
+            });
+            this.sliders.trackCount.on('update', (values) => { vm.trackCount = parseInt(values[0]); });
+
+            const yearRangeEl = document.getElementById('yearRangeSlider');
+            this.sliders.yearRange = noUiSlider.create(yearRangeEl, {
+                start: [this.yearRange[0], this.yearRange[1]], connect: true,
+                range: { 'min': 1950, 'max': 2025 }, format: fmt
+            });
+            this.sliders.yearRange.on('update', (values) => { vm.yearRange = [parseInt(values[0]), parseInt(values[1])]; });
+
+            const chillEl = document.getElementById('chillSlider');
+            this.sliders.chill = noUiSlider.create(chillEl, {
+                start: [this.chill], step: 1,
+                range: { 'min': 1, 'max': 10 }, format: fmt
+            });
+            this.sliders.chill.on('update', (values) => { vm.chill = parseInt(values[0]); });
+
+            const energyEl = document.getElementById('energySlider');
+            this.sliders.energy = noUiSlider.create(energyEl, {
+                start: [this.energy], step: 1,
+                range: { 'min': 1, 'max': 10 }, format: fmt
+            });
+            this.sliders.energy.on('update', (values) => { vm.energy = parseInt(values[0]); });
+        },
+        async loadLastPlaylist() {
+            try {
+                const response = await fetch('/last-playlist');
+                const data = await response.json();
+                if (data.playlist) {
+                    this.lastPlaylist = data;
+                }
+            } catch (error) {
+                console.error('Erreur chargement playlist:', error);
+            }
+        },
+        async generatePlaylist() {
+            if (this.isGenerating || !this.prompt.trim()) return;
+            this.isGenerating = true;
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: this.finalPrompt })
+                });
+                const data = await response.json();
+                if (data.tracks_added && data.tracks_added.length > 0) {
+                    this.lastPlaylist = data;
+                }
+            } catch (error) {
+                console.error('Erreur generation:', error);
+            } finally {
+                this.isGenerating = false;
+            }
+        }
+    }
+};

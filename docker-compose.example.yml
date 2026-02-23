@@ -1,0 +1,15 @@
+services:
+  qcraft:
+    build: .
+    container_name: qcraft
+    restart: unless-stopped
+    ports:
+      - "9898:5000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      # Optional: shared CSS/JS for themes (see README)
+      # - ./shared:/app/shared
+    environment:
+      - TZ=Europe/Zurich

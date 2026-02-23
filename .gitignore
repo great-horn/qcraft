@@ -1,0 +1,8 @@
+.env
+.DS_Store
+.claude/
+CLAUDE.md
+data/*.db
+data/*.sqlite
+__pycache__/
+*.pyc

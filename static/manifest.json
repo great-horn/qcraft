@@ -1,0 +1,15 @@
+{
+  "name": "Qcraft",
+  "short_name": "Qcraft",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121418",
+  "theme_color": "#121418",
+  "icons": [
+    {
+      "src": "/static/qcraft-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
