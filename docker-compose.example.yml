@@ -9,7 +9,5 @@ services:
       - .env
     volumes:
       - ./data:/app/data
-      # Optional: shared CSS/JS for themes (see README)
-      # - ./shared:/app/shared
     environment:
       - TZ=Europe/Zurich

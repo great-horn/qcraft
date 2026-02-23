@@ -115,20 +115,9 @@ The Qobuz App ID can be found by inspecting network requests in the Qobuz web pl
 
 > **Note:** Qobuz requires an active subscription (Studio/Sublime) for streaming access.
 
-## Shared CSS/JS (Optional)
+## Shared CSS/JS
 
-QCraft works standalone out of the box. However, it can optionally use shared CSS/JS files for enhanced theming and animations. Without shared files, the app uses its built-in styles.
-
-To add shared theme support, mount a `shared/` directory:
-
-```yaml
-volumes:
-  - ./shared:/app/shared
-```
-
-The shared directory should contain:
-- `css/tailwind.css`, `css/themes.css`, `css/layout.css`, `css/components.css`, `css/animations.css`
-- `js/common.js`, `js/animations.js`, `js/BaseSidebar.js`
+QCraft ships with a `shared/` directory containing all required CSS and JS assets (themes, layout, components, animations). Everything works out of the box — no extra configuration needed.
 
 ## API Endpoints
 
