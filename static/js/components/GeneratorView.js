@@ -1,9 +1,10 @@
 export default {
     props: ['currentProfile'],
+    inject: ['t', 'lang'],
     template: `
     <div>
         <!-- Titre principal -->
-        <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1.5rem;">Generateur</h1>
+        <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1.5rem;">{{ t('generator.title') }}</h1>
 
         <!-- Hero Section - Derniere playlist -->
         <div v-if="lastPlaylist && lastPlaylist.playlist" class="hero-section">
@@ -24,11 +25,11 @@ export default {
                     </svg>
                 </div>
                 <div class="hero-info">
-                    <div class="hero-label">Derniere playlist</div>
+                    <div class="hero-label">{{ t('generator.lastPlaylist') }}</div>
                     <div class="hero-title">{{ lastPlaylist.playlist }}</div>
                     <div class="hero-meta">
-                        {{ lastPlaylist.tracks_added ? lastPlaylist.tracks_added.length : 0 }} morceaux
-                        &bull; ~{{ lastPlaylist.tracks_added ? Math.round(lastPlaylist.tracks_added.length * 3.5) : 0 }} minutes
+                        {{ lastPlaylist.tracks_added ? lastPlaylist.tracks_added.length : 0 }} {{ t('generator.tracks') }}
+                        &bull; ~{{ lastPlaylist.tracks_added ? Math.round(lastPlaylist.tracks_added.length * 3.5) : 0 }} {{ t('generator.minutes') }}
                     </div>
                     <div class="hero-actions">
                         <a v-if="lastPlaylist.qobuz_playlist_id"
@@ -39,14 +40,14 @@ export default {
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polygon points="10 8 16 12 10 16 10 8"></polygon>
                             </svg>
-                            Ouvrir dans Qobuz
+                            {{ t('generator.openInQobuz') }}
                         </a>
                         <a href="#/history" class="hero-btn hero-btn-secondary">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="1 4 1 10 7 10"></polyline>
                                 <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
                             </svg>
-                            Voir l'historique
+                            {{ t('generator.viewHistory') }}
                         </a>
                     </div>
                 </div>
@@ -55,16 +56,16 @@ export default {
 
         <!-- Section Prompt -->
         <div class="section">
-            <label for="prompt">Decris ta vibe musicale</label>
+            <label for="prompt">{{ t('generator.describeVibe') }}</label>
             <textarea
                 id="prompt"
                 v-model="prompt"
-                placeholder="Ex: Une playlist chill pour travailler avec des beats lo-fi et du jazz moderne..."
+                :placeholder="t('generator.placeholder')"
                 @keydown.ctrl.enter="generatePlaylist">
             </textarea>
 
             <div v-if="finalPrompt" class="prompt-preview">
-                <strong>Prompt final:</strong> {{ finalPrompt }}
+                <strong>{{ t('generator.finalPrompt') }}:</strong> {{ finalPrompt }}
             </div>
         </div>
 
@@ -72,13 +73,13 @@ export default {
         <div class="section">
             <div class="tabs tabs--pill">
                 <button class="tab-btn" :class="{ active: activeTab === 'params' }" @click="activeTab = 'params'">
-                    Parametres
+                    {{ t('generator.parameters') }}
                 </button>
                 <button class="tab-btn" :class="{ active: activeTab === 'moods' }" @click="activeTab = 'moods'">
-                    Ambiances
+                    {{ t('generator.moods') }}
                 </button>
                 <button class="tab-btn" :class="{ active: activeTab === 'filters' }" @click="activeTab = 'filters'">
-                    Filtres avances
+                    {{ t('generator.advancedFilters') }}
                 </button>
             </div>
 
@@ -87,28 +88,28 @@ export default {
                 <div class="controls">
                     <div class="control-group">
                         <label>
-                            Nombre de morceaux: <span class="range-value">{{ trackCount }}</span>
+                            {{ t('generator.trackCount') }}: <span class="range-value">{{ trackCount }}</span>
                         </label>
                         <div class="slider-container" id="trackCountSlider"></div>
                     </div>
 
                     <div class="control-group">
                         <label>
-                            Annees: <span class="range-value">{{ yearRange[0] }} - {{ yearRange[1] }}</span>
+                            {{ t('generator.years') }}: <span class="range-value">{{ yearRange[0] }} - {{ yearRange[1] }}</span>
                         </label>
                         <div class="slider-container" id="yearRangeSlider"></div>
                     </div>
 
                     <div class="control-group">
                         <label>
-                            Chillitude: <span class="range-value">{{ chill }}/10</span>
+                            {{ t('generator.chillness') }}: <span class="range-value">{{ chill }}/10</span>
                         </label>
                         <div class="slider-container" id="chillSlider"></div>
                     </div>
 
                     <div class="control-group">
                         <label>
-                            Energie: <span class="range-value">{{ energy }}/10</span>
+                            {{ t('generator.energy') }}: <span class="range-value">{{ energy }}/10</span>
                         </label>
                         <div class="slider-container" id="energySlider"></div>
                     </div>
@@ -118,11 +119,11 @@ export default {
             <!-- Onglet Ambiances -->
             <div class="tab-content" :class="{ active: activeTab === 'moods' }">
                 <div class="moods-grid">
-                    <button v-for="mood in moods" :key="mood.name"
+                    <button v-for="mood in moodKeys" :key="mood"
                             @click="selectMood(mood)"
                             class="mood-btn"
-                            :class="{ active: selectedMood === mood.name }">
-                        {{ mood.name }}
+                            :class="{ active: selectedMood === mood }">
+                        {{ t('mood.' + mood) }}
                     </button>
                 </div>
             </div>
@@ -130,14 +131,14 @@ export default {
             <!-- Onglet Filtres avances -->
             <div class="tab-content" :class="{ active: activeTab === 'filters' }">
                 <div class="tag-groups">
-                    <div class="tag-group" v-for="group in tagGroups" :key="group.name">
-                        <h3>{{ group.name }}</h3>
+                    <div class="tag-group" v-for="group in tagGroups" :key="group.key">
+                        <h3>{{ t('tagGroup.' + group.key) }}</h3>
                         <div>
                             <span v-for="tag in group.tags" :key="tag"
                                   @click="toggleTag(tag)"
                                   class="tag-btn"
                                   :class="{ active: selectedTags.includes(tag) }">
-                                {{ tag }}
+                                {{ t('tag.' + tag) }}
                             </span>
                         </div>
                     </div>
@@ -149,11 +150,11 @@ export default {
         <div class="actions">
             <button class="btn btn-primary" @click="generatePlaylist" :disabled="isGenerating || !prompt.trim()">
                 <div v-if="isGenerating" class="spinner"></div>
-                <span v-if="isGenerating">Generation en cours...</span>
-                <span v-else>Generer la playlist</span>
+                <span v-if="isGenerating">{{ t('generator.generating') }}</span>
+                <span v-else>{{ t('generator.generate') }}</span>
             </button>
             <button class="btn btn-secondary" @click="resetFilters">
-                Reinitialiser
+                {{ t('generator.reset') }}
             </button>
         </div>
 
@@ -165,13 +166,13 @@ export default {
                    :href="'https://open.qobuz.com/playlist/' + lastPlaylist.qobuz_playlist_id"
                    target="_blank"
                    class="btn btn-primary">
-                    Ouvrir dans Qobuz
+                    {{ t('generator.openInQobuz') }}
                 </a>
             </div>
 
             <div v-if="lastPlaylist.tracks_added && lastPlaylist.tracks_added.length > 0">
                 <p style="color: var(--text-secondary); margin-bottom: 15px;">
-                    {{ lastPlaylist.tracks_added.length }} morceaux &bull; ~{{ Math.round(lastPlaylist.tracks_added.length * 3.5) }} minutes
+                    {{ lastPlaylist.tracks_added.length }} {{ t('generator.tracks') }} &bull; ~{{ Math.round(lastPlaylist.tracks_added.length * 3.5) }} {{ t('generator.minutes') }}
                 </p>
                 <div style="max-height: 500px; overflow-y: auto;">
                     <a v-for="(track, index) in lastPlaylist.tracks_added"
@@ -200,7 +201,7 @@ export default {
                 </div>
             </div>
             <div v-else style="text-align: center; padding: 20px; color: var(--text-secondary);">
-                Aucun morceau trouve. Essaie de modifier ton prompt.
+                {{ t('generator.noTracksFound') }}
             </div>
         </div>
     </div>
@@ -218,31 +219,22 @@ export default {
             isGenerating: false,
             lastPlaylist: null,
             sliders: {},
-            moods: [
-                { name: 'Matin calme', prompt: 'Fais une playlist calme et lumineuse pour un matin tranquille.' },
-                { name: 'Electro chill', prompt: 'Playlist electro downtempo, ambiance chill et posee.' },
-                { name: 'Rock vintage', prompt: 'Du rock annees 70-80, guitares et voix legendaires.' },
-                { name: 'Soiree funky', prompt: 'Ambiance funky et dansante pour mettre le feu a la piste.' },
-                { name: 'Jazz urbain', prompt: 'Jazz contemporain, instrumental, ambiance de nuit en ville.' },
-                { name: 'Cafe pluvieux', prompt: 'Ambiance cafe sous la pluie, lo-fi, jazzy, cosy.' },
-                { name: 'Techno sombre', prompt: 'Techno industrielle, bpm eleve, ambiance club underground.' },
-                { name: 'Chill tropical', prompt: 'Vibes exotiques, reggae, chillout, plage et soleil.' },
-                { name: 'Route de nuit', prompt: "Fais une playlist electro ou downtempo pour conduire la nuit sur l'autoroute." },
-                { name: 'Energie positive', prompt: 'Fais une playlist joyeuse et motivante pour bien commencer la journee.' },
-                { name: 'Ballade nostalgique', prompt: 'Morceaux doux et melancoliques pour les souvenirs.' },
-                { name: 'Soiree acoustique', prompt: 'Fais une playlist acoustique, chaleureuse et intime pour une soiree detendue.' }
+            moodKeys: [
+                'morningCalm', 'electroChill', 'vintageRock', 'funkyNight',
+                'urbanJazz', 'rainyCafe', 'darkTechno', 'tropicalChill',
+                'nightDrive', 'positiveEnergy', 'nostalgicBallad', 'acousticEvening'
             ],
             tagGroups: [
-                { name: 'Voix', tags: ['Feminines', 'Masculines', 'Non chantees'] },
-                { name: 'Langue', tags: ['Anglais', 'Francais', 'Espagnol', 'Portugais', 'Japonais', 'Instrumental'] },
-                { name: 'Version', tags: ['Live only', 'Acoustique', 'Remix', 'Version originale', 'Cover'] },
-                { name: 'Ambiance', tags: ['Pluvieuse', 'Chaleureuse', 'Experimentale', 'Vintage', 'Basse mise en avant'] },
-                { name: 'Contenu', tags: ['Classiques connus', 'Underground', 'World', 'Tout public', 'Minimaliste'] },
-                { name: "Etat d'esprit", tags: ['Hypnotique', 'Nostalgique', 'Feel good', 'Planant', 'Energisant', 'Reveur'] },
-                { name: 'Origine', tags: ['Etats-Unis', 'Europe', 'Afrique', 'Asie', 'Amerique latine', 'Moyen-Orient'] },
-                { name: 'Epoque', tags: ['Annees 60-70', 'Annees 80', 'Annees 90', 'Annees 2000', 'Annees 2010+', 'Contemporain'] },
-                { name: 'Scene', tags: ['Mainstream', 'Independant', 'Labels majeurs', 'Autoproduction', 'Scene locale', 'International'] },
-                { name: 'Production', tags: ['Hi-Fi audiophile', 'Lo-Fi vintage', 'Production moderne', 'Enregistrement live', 'Home studio'] }
+                { key: 'voice', tags: ['female', 'male', 'noVocals'] },
+                { key: 'language', tags: ['langEnglish', 'langFrench', 'langSpanish', 'langPortuguese', 'langJapanese', 'langInstrumental'] },
+                { key: 'version', tags: ['liveOnly', 'acoustic', 'remix', 'original', 'cover'] },
+                { key: 'mood', tags: ['rainy', 'warm', 'experimental', 'vintage', 'bassForward'] },
+                { key: 'content', tags: ['knownClassics', 'underground', 'world', 'allAudiences', 'minimalist'] },
+                { key: 'mindset', tags: ['hypnotic', 'nostalgic', 'feelGood', 'floating', 'energizing', 'dreamy'] },
+                { key: 'origin', tags: ['usa', 'europe', 'africa', 'asia', 'latinAmerica', 'middleEast'] },
+                { key: 'era', tags: ['era60s70s', 'era80s', 'era90s', 'era2000s', 'era2010s', 'contemporary'] },
+                { key: 'scene', tags: ['mainstream', 'independent', 'majorLabels', 'selfProduced', 'localScene', 'international'] },
+                { key: 'production', tags: ['hifiAudiophile', 'lofiVintage', 'modernProduction', 'liveRecording', 'homeStudio'] }
             ]
         };
     },
@@ -250,19 +242,19 @@ export default {
         formattedTags() {
             return this.selectedTags.map(tag => {
                 const group = this.tagGroups.find(g => g.tags.includes(tag));
-                return group ? `${group.name}: ${tag}` : tag;
+                return group ? `${this.t('tagGroup.' + group.key)}: ${this.t('tag.' + tag)}` : this.t('tag.' + tag);
             });
         },
         finalPrompt() {
             const parts = [this.prompt.trim()];
-            if (this.trackCount !== 20) parts.push(`${this.trackCount} morceaux`);
+            if (this.trackCount !== 20) parts.push(`${this.trackCount} ${this.t('generator.tracks')}`);
             if (this.yearRange[0] !== 1950 || this.yearRange[1] !== 2025) {
-                parts.push(`entre ${this.yearRange[0]} et ${this.yearRange[1]}`);
+                parts.push(`${this.yearRange[0]} - ${this.yearRange[1]}`);
             }
-            if (this.chill !== 5) parts.push(`chillitude ${this.chill}/10`);
-            if (this.energy !== 5) parts.push(`energie ${this.energy}/10`);
+            if (this.chill !== 5) parts.push(`${this.t('generator.chillness')} ${this.chill}/10`);
+            if (this.energy !== 5) parts.push(`${this.t('generator.energy')} ${this.energy}/10`);
             if (this.formattedTags.length > 0) {
-                parts.push(`avec ${this.formattedTags.join(', ')}`);
+                parts.push(this.formattedTags.join(', '));
             }
             return parts.filter(p => p).join(', ');
         }
@@ -288,15 +280,14 @@ export default {
         });
     },
     beforeUnmount() {
-        // Destroy sliders to prevent leaks
         Object.values(this.sliders).forEach(slider => {
             if (slider && slider.destroy) slider.destroy();
         });
     },
     methods: {
-        selectMood(mood) {
-            this.prompt = mood.prompt;
-            this.selectedMood = mood.name;
+        selectMood(moodKey) {
+            this.prompt = this.t('mood.' + moodKey + '.prompt');
+            this.selectedMood = moodKey;
             setTimeout(() => { this.selectedMood = ''; }, 2000);
         },
         toggleTag(tag) {
@@ -362,7 +353,7 @@ export default {
                     this.lastPlaylist = data;
                 }
             } catch (error) {
-                console.error('Erreur chargement playlist:', error);
+                console.error('Error loading playlist:', error);
             }
         },
         async generatePlaylist() {
@@ -379,7 +370,7 @@ export default {
                     this.lastPlaylist = data;
                 }
             } catch (error) {
-                console.error('Erreur generation:', error);
+                console.error('Error generating:', error);
             } finally {
                 this.isGenerating = false;
             }

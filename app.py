@@ -114,17 +114,15 @@ def api_history():
 
 @app.route("/api/qobuz-check")
 def api_qobuz_check():
-    """Test de connexion à l'API Qobuz — retourne JSON"""
+    """Test de connexion à l'API Qobuz — retourne JSON structuré (i18n frontend)"""
     user_token = get_current_token()
     profile = get_current_profile()
 
     if not QOBUZ_APP_ID or not user_token:
         return jsonify({
             "status": "error",
-            "title": "Configuration incomplète",
-            "message": "App ID ou token manquant dans les variables d'environnement.",
-            "profile": profile,
-            "details": None
+            "error_type": "config",
+            "profile": profile
         })
 
     try:
@@ -140,43 +138,33 @@ def api_qobuz_check():
         if "error" in result:
             return jsonify({
                 "status": "error",
-                "title": "Erreur API Qobuz",
-                "message": result['error'].get('message', 'Erreur inconnue'),
-                "profile": profile,
-                "details": {
-                    "Code HTTP": r.status_code,
-                    "Profil": profile
-                }
+                "error_type": "api",
+                "error_message": result['error'].get('message', ''),
+                "http_code": r.status_code,
+                "profile": profile
             })
         else:
             tracks_count = len(result.get('tracks', {}).get('items', []))
             return jsonify({
                 "status": "success",
-                "title": "Connexion réussie",
-                "message": "L'API Qobuz répond correctement. Ton profil est bien configuré.",
                 "profile": profile,
-                "details": {
-                    "Code HTTP": r.status_code,
-                    "Profil": profile,
-                    "Résultats test": f"{tracks_count} morceaux trouvés"
-                }
+                "http_code": r.status_code,
+                "tracks_found": tracks_count
             })
 
     except requests.RequestException as e:
         return jsonify({
             "status": "error",
-            "title": "Erreur de connexion",
-            "message": f"Impossible de contacter l'API Qobuz : {str(e)}",
-            "profile": profile,
-            "details": None
+            "error_type": "network",
+            "error_message": str(e),
+            "profile": profile
         })
     except Exception as e:
         return jsonify({
             "status": "error",
-            "title": "Erreur inattendue",
-            "message": str(e),
-            "profile": profile,
-            "details": None
+            "error_type": "unknown",
+            "error_message": str(e),
+            "profile": profile
         })
 
 def search_qobuz_track(query, user_token):

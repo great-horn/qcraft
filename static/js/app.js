@@ -2,8 +2,9 @@ import Sidebar from './components/Sidebar.js';
 import GeneratorView from './components/GeneratorView.js';
 import HistoryView from './components/HistoryView.js';
 import QobuzCheckView from './components/QobuzCheckView.js';
+import { languages, translations } from './i18n.js';
 
-const { createApp, ref, onMounted } = Vue;
+const { createApp, ref, provide, onMounted } = Vue;
 
 const app = createApp({
     setup() {
@@ -13,14 +14,37 @@ const app = createApp({
         const sidebarOpen = ref(false);
         const theme = ref(typeof getTheme === 'function' ? getTheme() : 'dark');
 
-        function setThemeHandler(t) {
-            window.setTheme(t);
-            theme.value = t;
+        // i18n — detect browser language, fallback to English
+        const supportedLangs = Object.keys(languages);
+        const defaultLang = (() => {
+            const stored = localStorage.getItem('qcraft_lang');
+            if (stored && supportedLangs.includes(stored)) return stored;
+            const browser = navigator.language.slice(0, 2);
+            return supportedLangs.includes(browser) ? browser : 'en';
+        })();
+        const lang = ref(defaultLang);
+
+        function t(key) {
+            return translations[lang.value]?.[key] || translations['en']?.[key] || key;
+        }
+
+        function setLang(l) {
+            lang.value = l;
+            localStorage.setItem('qcraft_lang', l);
+        }
+
+        provide('t', t);
+        provide('lang', lang);
+        provide('setLang', setLang);
+        provide('languages', languages);
+
+        function setThemeHandler(th) {
+            window.setTheme(th);
+            theme.value = th;
         }
 
         function parseHash() {
             const hash = window.location.hash.slice(2) || 'generator';
-            // Map empty or root to 'generator'
             return hash === '' ? 'generator' : hash;
         }
 
@@ -39,15 +63,13 @@ const app = createApp({
                 profiles.value = profilesData.profiles || [];
                 currentProfile.value = profileData.profile || profilesData.default || profiles.value[0] || 'default';
             } catch (error) {
-                console.error('Erreur chargement profils:', error);
+                console.error('Error loading profiles:', error);
             }
 
-            // Listen for theme changes from common.js
             window.addEventListener('theme-changed', (e) => {
                 theme.value = e.detail.theme;
             });
 
-            // Listen for theme changes from parent (iframe embed)
             window.addEventListener('message', (event) => {
                 if (event.data.type === 'theme-change') {
                     const theme = event.data.theme;

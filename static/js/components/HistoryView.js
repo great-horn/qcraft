@@ -1,26 +1,27 @@
 export default {
+    inject: ['t', 'lang'],
     template: `
     <div>
-        <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1.5rem;">Historique</h1>
+        <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1.5rem;">{{ t('history.title') }}</h1>
 
         <!-- Loading -->
         <div v-if="loading" style="text-align: center; padding: 40px; color: var(--text-secondary);">
-            Chargement...
+            {{ t('history.loading') }}
         </div>
 
         <template v-else>
             <!-- Stats -->
             <div class="stats">
                 <div class="stat-card">
-                    <div class="stat-label">Total playlists</div>
+                    <div class="stat-label">{{ t('history.totalPlaylists') }}</div>
                     <div class="stat-value">{{ filteredPlaylists.length }}</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Total morceaux</div>
+                    <div class="stat-label">{{ t('history.totalTracks') }}</div>
                     <div class="stat-value">{{ totalTracks }}</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Duree totale</div>
+                    <div class="stat-label">{{ t('history.totalDuration') }}</div>
                     <div class="stat-value">{{ totalDuration }}h</div>
                 </div>
             </div>
@@ -28,7 +29,7 @@ export default {
             <!-- Filter + View Toggle -->
             <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
                 <select class="profile-selector" v-model="filterProfile" style="width: auto; min-width: 160px;">
-                    <option value="tous">All profiles</option>
+                    <option value="tous">{{ t('history.allProfiles') }}</option>
                     <option v-for="p in profiles" :key="p" :value="p">{{ p.charAt(0).toUpperCase() + p.slice(1) }}</option>
                 </select>
                 <div style="display: flex; gap: 8px;">
@@ -80,7 +81,7 @@ export default {
                         <div class="playlist-grid-title">{{ playlist.title }}</div>
                         <div class="playlist-grid-meta">
                             <span class="playlist-badge">{{ playlist.profile }}</span>
-                            <span>{{ playlist.tracks.length }} morceaux</span>
+                            <span>{{ playlist.tracks.length }} {{ t('generator.tracks') }}</span>
                         </div>
                     </div>
                 </a>
@@ -93,24 +94,24 @@ export default {
                         <div>
                             <div class="playlist-title">{{ playlist.title }}</div>
                             <div class="playlist-meta">
-                                {{ playlist.date }} &bull; {{ playlist.profile }} &bull; {{ playlist.tracks.length }} morceaux &bull; {{ playlist.duration }} min
+                                {{ playlist.date }} &bull; {{ playlist.profile }} &bull; {{ playlist.tracks.length }} {{ t('generator.tracks') }} &bull; {{ playlist.duration }} min
                             </div>
                         </div>
                         <div class="playlist-actions">
                             <button class="btn btn-secondary" @click="toggleTracks(index)">
-                                {{ openPlaylists.includes(index) ? 'Masquer' : 'Voir morceaux' }}
+                                {{ openPlaylists.includes(index) ? t('history.hideTracks') : t('history.showTracks') }}
                             </button>
                             <a v-if="playlist.qobuz_playlist_id"
                                :href="'https://open.qobuz.com/playlist/' + playlist.qobuz_playlist_id"
                                target="_blank"
                                class="btn btn-primary">
-                                Ouvrir
+                                {{ t('history.open') }}
                             </a>
                         </div>
                     </div>
 
                     <div v-if="playlist.prompt" class="prompt-text">
-                        <strong>Prompt:</strong> {{ playlist.prompt }}
+                        <strong>{{ t('history.prompt') }}:</strong> {{ playlist.prompt }}
                     </div>
 
                     <div class="track-list" :class="{ open: openPlaylists.includes(index) }">
@@ -142,7 +143,7 @@ export default {
             </div>
 
             <div v-if="filteredPlaylists.length === 0" style="text-align: center; padding: 40px; color: var(--text-secondary);">
-                Aucune playlist trouvee.
+                {{ t('history.noPlaylistFound') }}
             </div>
         </template>
     </div>
@@ -187,7 +188,7 @@ export default {
             const profilesData = await profilesRes.json();
             this.profiles = profilesData.profiles || [];
         } catch (error) {
-            console.error('Erreur chargement historique:', error);
+            console.error('Error loading history:', error);
         } finally {
             this.loading = false;
         }
