@@ -48,6 +48,25 @@
     font-weight: 600;
 }
 
+/* Profile / Language selector (used by qcraft, amp, backup) */
+.profile-selector {
+    width: 100%;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 0.95em;
+    color: var(--text-primary);
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+}
+
+.profile-selector:hover {
+    border-color: var(--accent-primary);
+}
+
 .nav-item {
     display: flex;
     align-items: center;
