@@ -14,19 +14,19 @@ export default {
             @set-theme="$emit('set-theme', $event)"
             @toggle-sidebar="$emit('toggle-sidebar')">
 
-            <!-- Profil -->
-            <div class="nav-section">
-                <div class="nav-section-title">{{ t('sidebar.profile') }}</div>
-                <select class="profile-selector" :value="currentProfile" @change="onProfileChange($event.target.value)">
-                    <option v-for="p in profiles" :key="p" :value="p">{{ p.charAt(0).toUpperCase() + p.slice(1) }}</option>
-                </select>
-            </div>
-
             <!-- Langue -->
             <div class="nav-section">
                 <div class="nav-section-title">{{ t('sidebar.language') }}</div>
                 <select class="profile-selector" :value="lang" @change="setLang($event.target.value)">
                     <option v-for="(name, code) in languages" :key="code" :value="code">{{ name }}</option>
+                </select>
+            </div>
+
+            <!-- Profil -->
+            <div class="nav-section">
+                <div class="nav-section-title">{{ t('sidebar.profile') }}</div>
+                <select class="profile-selector" :value="currentProfile" @change="onProfileChange($event.target.value)">
+                    <option v-for="p in profiles" :key="p" :value="p">{{ p.charAt(0).toUpperCase() + p.slice(1) }}</option>
                 </select>
             </div>
 
